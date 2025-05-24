@@ -1,0 +1,14 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=GTK4 Theme Selector
+GenericName=GTK4 Theme Selector
+Comment=Apply a theme to GTK4 apps
+Categories=System;
+Exec=gtk4-theme-selector
+Terminal=false
+Icon=gtk4-theme-selector
+Keywords=GTK;gtk4;theme
+NoDisplay=false
+StartupNotify=false
+StartupWMClass=gtk4-theme-selector

@@ -1,0 +1,3 @@
+script/* usr/bin
+icons/* usr/share/icons/hicolor/64x64/apps
+*.desktop usr/share/applications

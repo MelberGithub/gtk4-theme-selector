@@ -1,0 +1,14 @@
+Source: gtk4-theme-selector
+Section: x11
+Priority: optional
+Maintainer: Melber <melber-mx-linux@gmail.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.6.2
+Homepage: <https:/mxlinux.org>
+
+Package: gtk4-theme-selector
+Architecture: all
+Depends: yad
+Description: Select a theme to override the default libadwaita theme in GTK4 apps

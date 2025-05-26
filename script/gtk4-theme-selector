@@ -2,7 +2,7 @@
 
 #gtk4-theme-selector
 #yad dialog to set gtk4 theme for MX-Linux by Melber
-VERSION='25.04.01'
+VERSION='2505.01'
 
 ############################
 # setup translations
@@ -16,6 +16,16 @@ gtk4_configpath="$HOME/.config/gtk-4.0"
 
 # check if gtk-4.0 folder exists, create it if not
 [ ! -d "$gtk4_configpath" ] && mkdir "$gtk4_configpath"
+
+gtk_path_check=$(grep "gtk_path" $gtk4_configpath/gtk.css)
+if [ -z "$gtk_path_check" ]; then
+    echo '/*gtk_path*/' >> $gtk4_configpath/gtk.css
+fi
+
+gtk_dark_path_check=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
+if [ -z "$gtk_dark_path_check" ]; then
+    echo '/*gtk_dark_path*/' >> $gtk4_configpath/gtk-dark.css
+fi
 
 ############################
 
@@ -51,7 +61,7 @@ set_theme () {
 for i in "${theme_list_sorted[@]}";
 do
     if [ -d "$i/gtk-4.0" ] && [ -f "$i/gtk-4.0/gtk.css" ]; then
-        check_theme=$(readlink "$gtk4_configpath/gtk.css")
+        check_theme=$(grep "$i" $gtk4_configpath/gtk.css | cut -d'"' -f2 )
             if [ "$check_theme" = "$i/gtk-4.0/gtk.css" ]; then
                 theme_active=true
             else
@@ -78,13 +88,13 @@ export BTN_ABOUT=$(gettext "About") ; BTN_ABOUT+='!dialog-information'
 #TRANSLATORS App name in title bar
 title=$(gettext "GTK4 Theme Selector")
 class="gtk4-theme-selector"
-iconpath="/usr/share/pixmaps/gtk4-theme-selector.svg"
+iconpath="gtk4-theme-selector"
 #TRANSLATORS Text in main window
 text_1=$(gettext "The selected theme will override the default libadwaita theme in GTK4 apps.")
 
 yad_version_check=$(yad --version | cut -d'.' -f1)
 if [[ $yad_version_check -gt 0 ]]; then
-    show_about="--button="$BTN_ABOUT":5"
+    show_about='--button="$BTN_ABOUT":5'
 fi
 
 
@@ -108,19 +118,23 @@ case $? in
         --pname="$title" \
         --pversion="$VERSION" \
         --comments="$text_about" \
-        --website-label="mxlinux.org" \
+        --website-label="https://mxlinux.org/" \
         --website="https://mxlinux.org/" \
-        --copyright="Copyright (c) 2025 Melber - MX Linux" \
-        --authors="Melber,MX Devs" \
+        --copyright="Copyright (c) 2025 Melber" \
+        --authors="Melber, MX Devs" \
         --license="GPL3"
     ;;
 
     4 )
-        rm "$gtk4_configpath/gtk.css" "$gtk4_configpath/gtk-dark.css" "$gtk4_configpath/assets"
-        
-        if [ -L "$HOME/.config/assets" ]; then
-            rm "$HOME/.config/assets"
-        fi
+        gtk_path=$(grep "gtk_path" $gtk4_configpath/gtk.css)
+        gtk_path=$( echo "$gtk_path" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        sed -i "s/$gtk_path/\/*gtk_path*\//g" $gtk4_configpath/gtk.css
+
+        gtk_dark_path=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
+        gtk_dark_path=$( echo "$gtk_dark_path" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        sed -i "s/$gtk_dark_path/\/*gtk_dark_path*\//g" $gtk4_configpath/gtk-dark.css
+
+        finished="notyet"
     ;;
 
     3 | 252 )
@@ -128,13 +142,17 @@ case $? in
     ;;
 
     2 )
-        ln -sf "$theme_selection/gtk-4.0/gtk.css" "$gtk4_configpath/gtk.css"
-        ln -sf "$theme_selection/gtk-4.0/gtk-dark.css" "$gtk4_configpath/gtk-dark.css"
-        ln -sfn "$theme_selection/gtk-4.0/assets" "$gtk4_configpath/assets"
-            
-        if [ -d "$theme_selection/assets" ]; then
-            ln -sfn "$theme_selection/assets" "$HOME/.config/assets"
-        fi
+        gtk_path_old=$(grep "gtk_path" $gtk4_configpath/gtk.css)
+        gtk_path_old=$( echo "$gtk_path_old" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        gtk_path_new="@import url(\"$theme_selection/gtk-4.0/gtk.css\") /*gtk_path*/"
+        gtk_path_new=$( echo "$gtk_path_new" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        sed -i "s/$gtk_path_old/$gtk_path_new/" $gtk4_configpath/gtk.css
+        
+        gtk_dark_path_old=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
+        gtk_dark_path_old=$( echo "$gtk_dark_path_old" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        gtk_dark_path_new="@import url(\"$theme_selection/gtk-4.0/gtk-dark.css\") /*gtk_dark_path*/"
+        gtk_dark_path_new=$( echo "$gtk_dark_path_new" | sed -e 's/[]$\/*[\^]/\\&/g' )
+        sed -i "s/$gtk_dark_path_old/$gtk_dark_path_new/" $gtk4_configpath/gtk-dark.css
 
         finished="notyet"
     ;;

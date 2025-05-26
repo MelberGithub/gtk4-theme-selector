@@ -1,3 +1,9 @@
+gtk4-theme-selector (25.05.01) mx; urgency=medium
+
+  * use import in css files instead of symlinks
+
+ -- Melber <melber-mx-linux@gmail.com>  Mon, 26 May 2025 23:25:54 +0100
+
 gtk4-theme-selector (25.04.01) mx; urgency=medium
 
   * add yad version check

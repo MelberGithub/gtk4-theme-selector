@@ -1,0 +1,172 @@
+#!/bin/bash
+
+#gtk4-theme-selector
+#yad dialog to set gtk4 theme for MX-Linux by Melber
+VERSION='2505.01-alternative'
+
+############################
+# setup translations
+TEXTDOMAINDIR=/usr/share/locale 
+export TEXTDOMAIN="gtk4-theme-selector"
+source gettext.sh
+
+############################
+# set config path
+gtk4_configpath="$HOME/.config/gtk-4.0"
+
+# check if gtk-4.0 folder exists, create it if not
+[ ! -d "$gtk4_configpath" ] && mkdir "$gtk4_configpath"
+
+############################
+
+# check for theme folders
+[ -d "$HOME/.themes" ] && folder_list+=("$HOME/.themes")
+[ -d "$HOME/.config/themes" ] && folder_list+=("$HOME/.config/themes")
+[ -d "/usr/share/themes" ] && folder_list+=("/usr/share/themes")
+
+# get themes
+mapfile -d $'\0' theme_list_full < <(find "${folder_list[@]}" -maxdepth 1 -mindepth 1 -type d -print0)
+
+# make blocklist
+themepath="/usr/share/themes"
+blocklist=($themepath/Arc $themepath/Arc-Dark $themepath/Arc-Darker $themepath/Arc-Lighter $themepath/mx-comfort $themepath/mx-comfort-dark)
+
+# remove blocked themes
+theme_list=( $(printf "%s\n" "${theme_list_full[@]}" "${blocklist[@]}" "${blocklist[@]}" | sort | uniq -u) )
+
+# sort themes
+index=0 theme_list_sorted=()
+while read -r line ; do
+    theme_list_sorted+=("${theme_list[${line##* }]}")
+done <<< "$(for j in "${theme_list[@]}" ; do
+    echo "$(basename "$j") $((index++))"
+done | sort -n)"
+
+
+# function
+set_theme () {
+
+# find theme folders with a gtk-4.0 folder and gtk-4.0/gtk.css file
+# create array with found themes for yad radiolist
+for i in "${theme_list_sorted[@]}";
+do
+    if [ -d "$i/gtk-4.0" ] && [ -f "$i/gtk-4.0/gtk.css" ]; then
+        check_theme=$(readlink "$gtk4_configpath/gtk.css")
+            if [ "$check_theme" = "$i/gtk-4.0/gtk.css" ]; then
+                theme_active=true
+            else
+                theme_active=false
+            fi
+        theme_name=$(basename "$i")
+        gtk4_themes+=("$theme_active" "$theme_name" "$i")
+    fi
+done
+
+
+# yad
+
+# buttons
+#TRANSLATORS Button text
+export BTN_CLOSE=$(gettext "Close") ; BTN_CLOSE+='!window-close'
+#TRANSLATORS Button text
+export BTN_APPLY=$(gettext "Select") ; BTN_APPLY+='!object-select'
+#TRANSLATORS Button text
+export BTN_REMOVE=$(gettext "Clear override") ; BTN_REMOVE+='!delete'
+#TRANSLATORS Button text
+export BTN_ABOUT=$(gettext "About") ; BTN_ABOUT+='!dialog-information'
+
+#TRANSLATORS App name in title bar
+title=$(gettext "GTK4 Theme Selector")
+class="gtk4-theme-selector"
+iconpath="gtk4-theme-selector"
+#TRANSLATORS Text in main window
+text_1=$(gettext "The selected theme will override the default libadwaita theme in GTK4 apps.")
+
+yad_version_check=$(yad --version | cut -d'.' -f1)
+if [[ $yad_version_check -gt 0 ]]; then
+    show_about='--button="$BTN_ABOUT":5'
+fi
+
+
+theme_selection=$(yad --title="$title" --class="$class" --window-icon="$iconpath" \
+--width=350 --height=500 --center --borders=12 \
+--list --radiolist --separator="" \
+--text="\n<b>$text_1</b>\n" --text-align=center \
+$show_about --button="$BTN_CLOSE":3 --button="$BTN_REMOVE":4 --button="$BTN_APPLY":2 \
+--column="Select" --column="Theme" --column="Themepath" --no-headers \
+--hide-column=3 --print-column=3 \
+"${gtk4_themes[@]}");
+
+case $? in
+
+    5 )
+        #TRANSLATORS Text in main window
+        text_about=$(gettext "Override the default libadwaita theme in GTK4 apps.")
+
+        yad --about \
+        --image="$iconpath" \
+        --pname="$title" \
+        --pversion="$VERSION" \
+        --comments="$text_about" \
+        --website-label="https://mxlinux.org/" \
+        --website="https://mxlinux.org/" \
+        --copyright="Copyright (c) 2025 Melber" \
+        --authors="Melber, MX Devs" \
+        --license="GPL3"
+    ;;
+
+    4 )
+        for i in $gtk4_configpath/*; do
+            if [[ "$i" = *.backup ]]; then
+                j=$(echo $i | sed -e 's/.backup//')
+                mv "$i" "$j"
+            elif [[ -L "$i" ]]; then
+                rm "$i"
+            fi
+        done
+
+        finished="notyet"
+    ;;
+
+    3 | 252 )
+        finished="alldone"
+    ;;
+
+    2 )
+        for i in $gtk4_configpath/*; do
+            if [[ ! -L "$i" ]] && [[ "$i" != *.backup ]]; then
+                mv "$i" "$i.backup"
+            fi
+        done
+
+        ln -sf "$theme_selection/gtk-4.0/gtk.css" "$gtk4_configpath/gtk.css"
+        ln -sf "$theme_selection/gtk-4.0/gtk-dark.css" "$gtk4_configpath/gtk-dark.css"
+        ln -sfn "$theme_selection/gtk-4.0/assets" "$gtk4_configpath/assets"
+            
+        if [ -d "$theme_selection/assets" ]; then
+            ln -sfn "$theme_selection/assets" "$HOME/.config/assets"
+        fi
+
+        finished="notyet"
+    ;;
+
+esac
+
+unset check_theme theme_active gtk4_themes
+}
+
+export -f set_theme
+
+
+############################
+
+# main loop
+
+until [ "$finished" = "alldone" ]; do
+
+    set_theme
+
+done
+
+exit 0
+

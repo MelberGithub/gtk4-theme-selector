@@ -1,0 +1,9 @@
+Package: gtk4-theme-selector
+Version: 25.08.01
+Architecture: all
+Maintainer: Melber <melber-mx-linux@gmail.com>
+Installed-Size: 26
+Section: x11
+Priority: optional
+Homepage: <https:/mxlinux.org>
+Description: Select a theme to override the default libadwaita theme in GTK4 apps

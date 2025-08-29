@@ -2,7 +2,7 @@
 
 #gtk4-theme-selector
 #yad dialog to set gtk4 theme for MX-Linux by Melber
-VERSION='2508.01'
+VERSION='25.08.02'
 
 ############################
 # setup translations
@@ -16,16 +16,6 @@ gtk4_configpath="$HOME/.config/gtk-4.0"
 
 # check if gtk-4.0 folder exists, create it if not
 [ ! -d "$gtk4_configpath" ] && mkdir "$gtk4_configpath"
-
-gtk_path_check=$(grep "gtk_path" $gtk4_configpath/gtk.css)
-if [ -z "$gtk_path_check" ]; then
-    echo '/*gtk_path*/' >> $gtk4_configpath/gtk.css
-fi
-
-gtk_dark_path_check=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
-if [ -z "$gtk_dark_path_check" ]; then
-    echo '/*gtk_dark_path*/' >> $gtk4_configpath/gtk-dark.css
-fi
 
 ############################
 
@@ -61,7 +51,7 @@ set_theme () {
 for i in "${theme_list_sorted[@]}";
 do
     if [ -d "$i/gtk-4.0" ] && [ -f "$i/gtk-4.0/gtk.css" ]; then
-        check_theme=$(grep "$i" $gtk4_configpath/gtk.css | cut -d'"' -f2 )
+        check_theme=$(readlink "$gtk4_configpath/gtk.css")
             if [ "$check_theme" = "$i/gtk-4.0/gtk.css" ]; then
                 theme_active=true
             else
@@ -77,13 +67,13 @@ done
 
 # buttons
 #TRANSLATORS Button text
-export BTN_CLOSE=$(gettext "Close") ; BTN_CLOSE+='!window-close'
+BTN_CLOSE=$(gettext "Close") ; BTN_CLOSE+='!window-close'
 #TRANSLATORS Button text
-export BTN_APPLY=$(gettext "Select") ; BTN_APPLY+='!object-select'
+BTN_APPLY=$(gettext "Select") ; BTN_APPLY+='!object-select'
 #TRANSLATORS Button text
-export BTN_REMOVE=$(gettext "Clear override") ; BTN_REMOVE+='!delete'
+BTN_REMOVE=$(gettext "Clear override") ; BTN_REMOVE+='!delete'
 #TRANSLATORS Button text
-export BTN_ABOUT=$(gettext "About") ; BTN_ABOUT+='!dialog-information'
+BTN_ABOUT=$(gettext "About") ; BTN_ABOUT+='!dialog-information'
 
 #TRANSLATORS App name in title bar
 title=$(gettext "GTK4 Theme Selector")
@@ -93,7 +83,7 @@ iconpath="gtk4-theme-selector"
 text_1=$(gettext "The selected theme will override the default libadwaita theme in GTK4 apps.")
 text_2=$(gettext "Note: only themes containing a gtk4 configuration are shown.")
 text_3=$(gettext "There is no guarantee the theme complies with the current gtk4 version.")
-text_4=$(gettext "Warning: Any existing files in ~/.config/gtk-4.0 will be deleted.")
+text_4=$(gettext "Warning: Existing files in ~/.config/gtk-4.0 may be modified or deleted.")
 
 yad_version_check=$(yad --version 2>/dev/null |  sed "s/[^0-9].*//")
 if [[ $yad_version_check -gt 0 ]]; then
@@ -113,7 +103,7 @@ $show_about --button="$BTN_CLOSE":3 --button="$BTN_REMOVE":4 --button="$BTN_APPL
 case $? in
 
     5 )
-        #TRANSLATORS Text in main window
+        #TRANSLATORS Text in About window
         text_about=$(gettext "Override the default libadwaita theme in GTK4 apps.")
 
         yad --about \
@@ -129,14 +119,8 @@ case $? in
     ;;
 
     4 )
-        gtk_path=$(grep "gtk_path" $gtk4_configpath/gtk.css)
-        gtk_path=$( echo "$gtk_path" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        sed -i "s/$gtk_path/\/*gtk_path*\//g" $gtk4_configpath/gtk.css
-
-        gtk_dark_path=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
-        gtk_dark_path=$( echo "$gtk_dark_path" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        sed -i "s/$gtk_dark_path/\/*gtk_dark_path*\//g" $gtk4_configpath/gtk-dark.css
-
+        rm "$gtk4_configpath/gtk.css" "$gtk4_configpath/gtk-dark.css" "$gtk4_configpath/assets"
+        
         finished="notyet"
     ;;
 
@@ -145,17 +129,13 @@ case $? in
     ;;
 
     2 )
-        gtk_path_old=$(grep "gtk_path" $gtk4_configpath/gtk.css)
-        gtk_path_old=$( echo "$gtk_path_old" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        gtk_path_new="@import url(\"$theme_selection/gtk-4.0/gtk.css\") /*gtk_path*/"
-        gtk_path_new=$( echo "$gtk_path_new" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        sed -i "s/$gtk_path_old/$gtk_path_new/" $gtk4_configpath/gtk.css
-        
-        gtk_dark_path_old=$(grep "gtk_dark_path" $gtk4_configpath/gtk-dark.css)
-        gtk_dark_path_old=$( echo "$gtk_dark_path_old" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        gtk_dark_path_new="@import url(\"$theme_selection/gtk-4.0/gtk-dark.css\") /*gtk_dark_path*/"
-        gtk_dark_path_new=$( echo "$gtk_dark_path_new" | sed -e 's/[]$\/*[\^]/\\&/g' )
-        sed -i "s/$gtk_dark_path_old/$gtk_dark_path_new/" $gtk4_configpath/gtk-dark.css
+        ln -sf "$theme_selection/gtk-4.0/gtk.css" "$gtk4_configpath/gtk.css"
+        ln -sf "$theme_selection/gtk-4.0/gtk-dark.css" "$gtk4_configpath/gtk-dark.css"
+        ln -sfn "$theme_selection/gtk-4.0/assets" "$gtk4_configpath/assets"
+            
+        if [ -d "$theme_selection/assets" ]; then
+            ln -sfn "$theme_selection/assets" "$HOME/.config/assets"
+        fi
 
         finished="notyet"
     ;;

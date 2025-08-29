@@ -1,3 +1,11 @@
+gtk4-theme-selector (25.08.02) mx; urgency=medium
+
+  * fix script
+  * amend text
+
+ -- Melber <melber-mx-linux@gmail.com>  Sat, 30 Aug 2025 00:15:54 +0100
+ 
+
 gtk4-theme-selector (25.08.01) mx; urgency=medium
 
   * fix about button
